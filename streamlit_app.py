@@ -1,38 +1,55 @@
-# -------------------------------------------------------------------------------
-# TOP-OF-FILE STUBS:  
-#  — avoid numpy.distutils, EconML, all refuters, AND bypass the pydot/GraphRefuter bug
-# -------------------------------------------------------------------------------
-import sys, types
+# ---------------------------------------------------------------------
+# PATCH: allow pydot.Dot.get_strict(None) to work
+# ---------------------------------------------------------------------
+import pydot
+_original_get_strict = pydot.Dot.get_strict
+def _patched_get_strict(self, strict=None):
+    return _original_get_strict(self)
+pydot.Dot.get_strict = _patched_get_strict
 
-# 1) Stub numpy.distutils.misc_util.is_sequence
+# ---------------------------------------------------------------------
+# Stub out numpy.distutils.misc_util so dowhy’s econml import won’t crash
+# ---------------------------------------------------------------------
+import sys, types
 _misc = types.SimpleNamespace(is_sequence=lambda x: False)
 sys.modules["numpy.distutils.misc_util"] = _misc
 
-# 2) Stub the econml estimator so that dowhy.causal_estimators.econml can import
+# ---------------------------------------------------------------------
+# Stub out dowhy.causal_estimators.econml
+# ---------------------------------------------------------------------
 _ec = types.ModuleType("dowhy.causal_estimators.econml")
-_ec.Econml = type("Econml", (), {})      # no-op class
+_ec.Econml = type("Econml", (), {})
 sys.modules["dowhy.causal_estimators.econml"] = _ec
 
-# 3) Stub every dowhy.causal_refuters submodule + key classes
+# ---------------------------------------------------------------------
+# Stub out all dowhy.causal_refuters so import-time errors vanish
+# ---------------------------------------------------------------------
 _refpkg = types.ModuleType("dowhy.causal_refuters")
 sys.modules["dowhy.causal_refuters"] = _refpkg
-
-for sub, clsname in [
-    ("add_unobserved_common_cause", "AddUnobservedCommonCause"),
-    ("graph_refuter",            "GraphRefuter"),
-    ("placebo_treatment_refuter","PlaceboTreatmentRefuter"),
-    ("data_subset_refuter",      "DataSubsetRefuter"),
-    ("random_common_cause_refuter","RandomCommonCauseRefuter"),
-]:
+for sub in ["add_unobserved_common_cause","graph_refuter",
+            "placebo_treatment_refuter","data_subset_refuter",
+            "random_common_cause_refuter"]:
     m = types.ModuleType(f"dowhy.causal_refuters.{sub}")
-    setattr(m, clsname, type(clsname, (), {}))
+    setattr(m, sub.title().replace("_",""), type(sub, (), {}))
     sys.modules[f"dowhy.causal_refuters.{sub}"] = m
 
-# 4) Monkey-patch networkx’s pydot loader to avoid the get_strict(None) bug
+# Now import your normal dependencies:
+import os, io, zipfile
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import streamlit as st
 import networkx as _nx
-from networkx.drawing import nx_pydot
-# override their from_pydot so it never invokes pydot.Dot.get_strict
-nx_pydot.from_pydot = lambda P: _nx.DiGraph()
+from owlready2 import get_ontology
+from dowhy import CausalModel
+from networkx.algorithms.d_separation import d_separated as _dsep
+
+# Monkey‐patch NetworkX for DoWhy compatibility
+_nx.algorithms.d_separated = _dsep
+
+st.set_page_config(layout="wide")
+# …and the rest of your app exactly as before…
+
 
 # -----------------------------------------------------------------------
 # Now import everything else
