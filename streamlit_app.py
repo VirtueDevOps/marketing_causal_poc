@@ -112,9 +112,15 @@ if st.sidebar.button("▶️ Run Causal Model"):
         estimand, method_name="backdoor.linear_regression"
     )
 
-    # three refutation tests
-    ref1 = model.refute_estimate(estimand, estimate,
-                                 method_name="random_common_cause")
+    # three refutation tests with guard for random_common_cause
+    try:
+        ref1 = model.refute_estimate(
+            estimand, estimate,
+            method_name="random_common_cause"
+        )
+    except ModuleNotFoundError:
+        ref1 = None
+
     ref2 = model.refute_estimate(estimand, estimate,
                                  method_name="placebo_treatment_refuter",
                                  placebo_type="permute")
@@ -162,9 +168,12 @@ if "ate" in st.session_state:
     st.write("### Refutation Tests")
     st.caption("These are diagnostics—your ATE should hold up under each:")
 
-    with st.expander("🔍 Random Common Cause"):
-        st.write(f"- Original ATE: {r1.estimated_effect:.3f}")
-        st.write(f"- ATE after refute: {r1.new_effect:.3f}")
+    if r1 is not None:
+        with st.expander("🔍 Random Common Cause"):
+            st.write(f"- Original ATE: {r1.estimated_effect:.3f}")
+            st.write(f"- ATE after refute: {r1.new_effect:.3f}")
+    else:
+        st.write("❗ Random Common Cause test skipped (EconML not installed).")
 
     with st.expander("🔍 Placebo Treatment"):
         st.write(f"- Original ATE: {r2.estimated_effect:.3f}")
