@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xml:base="file://C:\Users\jonmc\OneDrive\Git Repos\marketing_causal_poc\ontology\marketing_ontology.owl"
+         xmlns="file://C:\Users\jonmc\OneDrive\Git Repos\marketing_causal_poc\ontology\marketing_ontology.owl#">
+
+<owl:Ontology rdf:about="file://C:\Users\jonmc\OneDrive\Git Repos\marketing_causal_poc\ontology\marketing_ontology.owl"/>
+
+<owl:ObjectProperty rdf:about="#causes"/>
+
+<owl:Class rdf:about="#Campaign">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#causes"/>
+      <owl:someValuesFrom rdf:resource="#Impression"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+</owl:Class>
+
+<owl:Class rdf:about="#Impression">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#causes"/>
+      <owl:someValuesFrom rdf:resource="#Click"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+</owl:Class>
+
+<owl:Class rdf:about="#Click">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <rdfs:subClassOf>
+    <owl:Restriction>
+      <owl:onProperty rdf:resource="#causes"/>
+      <owl:someValuesFrom rdf:resource="#Conversion"/>
+    </owl:Restriction>
+  </rdfs:subClassOf>
+</owl:Class>
+
+<owl:Class rdf:about="#Conversion">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+</owl:Class>
+
+
+</rdf:RDF>

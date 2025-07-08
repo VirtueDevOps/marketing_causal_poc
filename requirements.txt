@@ -1,0 +1,9 @@
+owlready2
+pandas
+numpy
+dowhy
+matplotlib
+streamlit
+networkx==2.8.8
+pydot==1.4.1
+graphviz
