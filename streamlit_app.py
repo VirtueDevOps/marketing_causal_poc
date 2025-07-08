@@ -1,10 +1,13 @@
-# --- Stub out dowhy.causal_estimators.econml and numpy.distutils.misc_util ---
+# --- Stubs to skip DoWhy’s EconML-based refuter and numpy.distutils errors ---
 import sys, types
 
-# 1) Create a fake econml module so DoWhy’s "from dowhy.causal_estimators.econml import Econml" succeeds
-sys.modules["dowhy.causal_estimators.econml"] = types.ModuleType("dowhy.causal_estimators.econml")
-
-# 2) Create a fake numpy.distutils.misc_util so any import of it will work
+# 1) Stub the entire dowhy.causal_refuters package
+sys.modules["dowhy.causal_refuters"] = types.ModuleType("dowhy.causal_refuters")
+# 2) Stub the specific add_unobserved_common_cause submodule
+sys.modules["dowhy.causal_refuters.add_unobserved_common_cause"] = types.ModuleType(
+    "dowhy.causal_refuters.add_unobserved_common_cause"
+)
+# 3) Stub numpy.distutils.misc_util to avoid the missing package error
 _misc = types.ModuleType("numpy.distutils.misc_util")
 _misc.is_sequence = lambda x: isinstance(x, (list, tuple))
 sys.modules["numpy.distutils.misc_util"] = _misc
@@ -22,7 +25,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from owlready2 import get_ontology
-from dowhy import CausalModel  # now Econml import is a no-op because of our stub
+from dowhy import CausalModel   # EconML & refuters are now no-ops
 
 st.set_page_config(layout="wide")
 
