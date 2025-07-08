@@ -1,14 +1,14 @@
-# --- Stub out numpy.distutils.misc_util so DoWhy’s econml importer won't fail ---
-import sys
-import types
+# --- Stub out dowhy.causal_estimators.econml and numpy.distutils.misc_util ---
+import sys, types
 
-# Create a fake module at numpy.distutils.misc_util
-_misc_mod = types.ModuleType("numpy.distutils.misc_util")
-# Provide the minimal function DoWhy expects
-_misc_mod.is_sequence = lambda x: isinstance(x, (list, tuple))
-# Inject into sys.modules before any CausalModel import
-sys.modules["numpy.distutils.misc_util"] = _misc_mod
-# --- End stub ---
+# 1) Create a fake econml module so DoWhy’s "from dowhy.causal_estimators.econml import Econml" succeeds
+sys.modules["dowhy.causal_estimators.econml"] = types.ModuleType("dowhy.causal_estimators.econml")
+
+# 2) Create a fake numpy.distutils.misc_util so any import of it will work
+_misc = types.ModuleType("numpy.distutils.misc_util")
+_misc.is_sequence = lambda x: isinstance(x, (list, tuple))
+sys.modules["numpy.distutils.misc_util"] = _misc
+# --- End stubs ---
 
 # --- monkey‐patch for DoWhy + NetworkX compatibility ---
 import networkx as _nx
@@ -22,7 +22,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from owlready2 import get_ontology
-from dowhy import CausalModel
+from dowhy import CausalModel  # now Econml import is a no-op because of our stub
 
 st.set_page_config(layout="wide")
 
@@ -88,7 +88,7 @@ st.write("### Data sample", df.head())
 # 2) Ontology
 st.sidebar.subheader("2) Ontology")
 ont_mode = st.sidebar.radio("Source", ["Built-In", "Upload"])
-if ont_mode=="Built-In":
+if ont_mode == "Built-In":
     onto = get_ontology("ontology/marketing_ontology.owl").load()
 else:
     uploaded_owl = st.sidebar.file_uploader("OWL file", ["owl"])
