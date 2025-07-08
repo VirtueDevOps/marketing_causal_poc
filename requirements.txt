@@ -1,13 +1,9 @@
 owlready2
 pandas
-numpy
+numpy==1.24.4
 dowhy
 matplotlib
 streamlit
 networkx==2.8.8
 pydot==1.4.1
 graphviz
-scikit-learn>=1.0,<1.2
-density-distutils
-tqdm
-sympy

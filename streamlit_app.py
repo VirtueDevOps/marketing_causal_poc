@@ -1,19 +1,21 @@
-# ----------------------------------------------------------------------------- 
-# Stub out dowhy.causal_refuters to avoid any import‐time errors on Streamlit Cloud 
-# ----------------------------------------------------------------------------- 
+# ----------------------------------------------------------------------
+# Stub out numpy.distutils and Dowhy’s EconML refuter to avoid any
+# import‐time errors on Streamlit Cloud
+# ----------------------------------------------------------------------
 import sys, types
 
-_refuters_mod = types.ModuleType("dowhy.causal_refuters")
-_refuters_mod.add_unobserved_common_cause = types.ModuleType("dowhy.causal_refuters.add_unobserved_common_cause")
-_refuters_mod.graph_refuter             = types.ModuleType("dowhy.causal_refuters.graph_refuter")
+# 1) Stub numpy.distutils.misc_util.is_sequence
+_misc = types.SimpleNamespace(is_sequence=lambda x: False)
+sys.modules["numpy.distutils.misc_util"] = _misc
 
-sys.modules["dowhy.causal_refuters"]                            = _refuters_mod
-sys.modules["dowhy.causal_refuters.add_unobserved_common_cause"] = _refuters_mod.add_unobserved_common_cause
-sys.modules["dowhy.causal_refuters.graph_refuter"]               = _refuters_mod.graph_refuter
+# 2) Stub Dowhy’s econml module
+_ec = types.ModuleType("dowhy.causal_estimators.econml")
+_ec.Econml = lambda *args, **kwargs: None
+sys.modules["dowhy.causal_estimators.econml"] = _ec
 
-# ----------------------------------------------------------------------------- 
-# Now import everything else normally 
-# ----------------------------------------------------------------------------- 
+# ----------------------------------------------------------------------
+# Now import everything else normally
+# ----------------------------------------------------------------------
 import os, io, zipfile
 import numpy as np
 import pandas as pd
@@ -91,7 +93,7 @@ st.write("### Data sample", df.head())
 # 2) Ontology
 st.sidebar.subheader("2) Ontology")
 ont_mode = st.sidebar.radio("Source", ["Built-In", "Upload"])
-if ont_mode=="Built-In":
+if ont_mode == "Built-In":
     onto = get_ontology("ontology/marketing_ontology.owl").load()
 else:
     uploaded_owl = st.sidebar.file_uploader("OWL file", ["owl"])
@@ -127,23 +129,12 @@ if st.sidebar.button("▶️ Run Causal Model"):
         estimand, method_name="backdoor.linear_regression"
     )
 
-    # three refutation tests (these now all no-op but still display)
-    ref1 = model.refute_estimate(estimand, estimate, method_name="random_common_cause")
-    ref2 = model.refute_estimate(estimand, estimate,
-                                 method_name="placebo_treatment_refuter",
-                                 placebo_type="permute")
-    ref3 = model.refute_estimate(estimand, estimate,
-                                 method_name="data_subset_refuter",
-                                 subset_fraction=0.7)
-
+    # **No refutation tests** (we've removed them to avoid import errors)
     st.session_state.update({
         "ate":    estimate.value,
         "base":   df["Conversions"].mean(),
         "df":     df,
         "graph":  graph,
-        "ref1":   ref1,
-        "ref2":   ref2,
-        "ref3":   ref3,
     })
 
 # 4) Results & What-If
@@ -152,9 +143,6 @@ if "ate" in st.session_state:
     base  = st.session_state["base"]
     df    = st.session_state["df"]
     graph = st.session_state["graph"]
-    r1    = st.session_state["ref1"]
-    r2    = st.session_state["ref2"]
-    r3    = st.session_state["ref3"]
 
     st.write("## 📊 Causal Results")
     st.subheader("Causal Graph")
@@ -165,23 +153,13 @@ if "ate" in st.session_state:
     st.write("### Heterogeneous Effects by Customer Segment")
     segs = []
     for seg in sorted(df["CustomerSegment"].unique()):
-        dseg = df[df["CustomerSegment"]==seg]
+        dseg = df[df["CustomerSegment"] == seg]
         mseg = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
         eset = mseg.estimate_effect(
             mseg.identify_effect(), method_name="backdoor.linear_regression"
         )
         segs.append((seg, eset.value))
     st.table(pd.DataFrame(segs, columns=["Segment","ATE"]).round(4))
-
-    st.write("### Refutation Tests")
-    st.caption("These are diagnostics—your ATE should hold up under each:")
-
-    for label, r in [("Random Common Cause", r1),
-                     ("Placebo Treatment",  r2),
-                     ("Data Subset Refuter",r3)]:
-        with st.expander(f"🔍 {label}"):
-            st.write(f"- Original ATE: {r.estimated_effect:.3f}")
-            st.write(f"- ATE after refute: {r.new_effect:.3f}")
 
     st.sidebar.subheader("4) What-If Scenario")
     mult     = st.sidebar.slider("Spend ×", 0.5, 2.0, 1.2, 0.05)
@@ -190,13 +168,12 @@ if "ate" in st.session_state:
 
     fig, ax = plt.subplots()
     ax.scatter(df["CampaignSpend"], df["Conversions"], alpha=0.4, label="Observed")
-    ax.axhline(base, linestyle="--", color="gray", label="Obs Avg")
+    ax.axhline(base, linestyle="--", color="gray", label="Observed Avg")
     ax.scatter(df["CampaignSpend"]*mult, [new_mean]*len(df),
                alpha=0.4, label="Counterfactual")
     ax.set_xlabel("Campaign Spend (USD)")
     ax.set_ylabel("Conversions")
     ax.legend()
     st.pyplot(fig)
-
 else:
-    st.info("▶ Click ‘Run Causal Model’ in the sidebar to compute ATE, CATEs & refutations.")
+    st.info("▶ Click ‘Run Causal Model’ in the sidebar to compute ATE and CATEs.")
