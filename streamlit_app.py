@@ -1,30 +1,32 @@
 # -----------------------------------------------------------------------
-# Stub out everything in dowhy that drags in numpy.distutils or sklearn.
+# Stub out all dowhy.refuters (so no numpy.distutils or sklearn is ever needed)
 # -----------------------------------------------------------------------
 import sys, types
 
-# 1a) Stub numpy.distutils.misc_util so dowhy.econml import never fails
+# 1) Stub numpy.distutils.misc_util to avoid the missing numpy.distutils error
 _misc = types.SimpleNamespace(is_sequence=lambda x: False)
 sys.modules["numpy.distutils.misc_util"] = _misc
 
-# 1b) Stub entire econml estimator so import dowhy.causal_estimators.econml works
-_ec_mod = types.ModuleType("dowhy.causal_estimators.econml")
-_ec_mod.Econml = lambda *args, **kwargs: None
-sys.modules["dowhy.causal_estimators.econml"] = _ec_mod
+# 2) Stub econml estimator so import dowhy.causal_estimators.econml never fails
+_ec = types.ModuleType("dowhy.causal_estimators.econml")
+_ec.Econml = type("Econml", (), {})  # no-op
+sys.modules["dowhy.causal_estimators.econml"] = _ec
 
-# 1c) Stub all dowhy.refuters (so import dowhy.causal_refuters never drags in econml)
-_ref_mod = types.ModuleType("dowhy.causal_refuters")
-sys.modules["dowhy.causal_refuters"] = _ref_mod
-for sub in ["add_unobserved_common_cause", "graph_refuter", "placebo_treatment_refuter", "data_subset_refuter", "random_common_cause"]:
-    sys.modules[f"dowhy.causal_refuters.{sub}"] = types.ModuleType(f"dowhy.causal_refuters.{sub}")
+# 3) Stub all the refuter modules & their key classes/functions
+_ref_base = types.ModuleType("dowhy.causal_refuters")
+sys.modules["dowhy.causal_refuters"] = _ref_base
 
-# 1d) Stub out dowhy.utils.encoding.one_hot_encode to avoid sklearn dependency
-_enc_mod = types.ModuleType("dowhy.utils.encoding")
-def one_hot_encode(df, drop_first, encoder=None):
-    # No-op: return original list and no encoder
-    return df, None
-_enc_mod.one_hot_encode = one_hot_encode
-sys.modules["dowhy.utils.encoding"] = _enc_mod
+for sub, clsname in [
+    ("add_unobserved_common_cause", "AddUnobservedCommonCause"),
+    ("graph_refuter",            "GraphRefuter"),
+    ("placebo_treatment_refuter","PlaceboTreatmentRefuter"),
+    ("data_subset_refuter",      "DataSubsetRefuter"),
+    ("random_common_cause",      "RandomCommonCauseRefuter")
+]:
+    mod = types.ModuleType(f"dowhy.causal_refuters.{sub}")
+    setattr(mod, clsname, type(clsname, (), {}))
+    sys.modules[f"dowhy.causal_refuters.{sub}"] = mod
+
 
 # -----------------------------------------------------------------------
 # Now import everything else
