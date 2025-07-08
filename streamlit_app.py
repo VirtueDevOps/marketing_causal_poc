@@ -112,21 +112,20 @@ if st.sidebar.button("▶️ Run Causal Model"):
         estimand, method_name="backdoor.linear_regression"
     )
 
-    # three refutation tests with guard for random_common_cause
-    try:
-        ref1 = model.refute_estimate(
-            estimand, estimate,
-            method_name="random_common_cause"
-        )
-    except ModuleNotFoundError:
-        ref1 = None
-
+    # always run these two
+    ref1 = model.refute_estimate(estimand, estimate,
+                                 method_name="random_common_cause")
     ref2 = model.refute_estimate(estimand, estimate,
                                  method_name="placebo_treatment_refuter",
                                  placebo_type="permute")
-    ref3 = model.refute_estimate(estimand, estimate,
-                                 method_name="data_subset_refuter",
-                                 subset_fraction=0.7)
+
+    # try the EconML‐based refuter, but skip if it fails
+    try:
+        ref3 = model.refute_estimate(estimand, estimate,
+                                     method_name="data_subset_refuter",
+                                     subset_fraction=0.7)
+    except Exception:
+        ref3 = None
 
     st.session_state.update({
         "ate":    estimate.value,
@@ -157,9 +156,9 @@ if "ate" in st.session_state:
     st.write("### Heterogeneous Effects by Customer Segment")
     segs = []
     for seg in sorted(df["CustomerSegment"].unique()):
-        dseg   = df[df["CustomerSegment"]==seg]
-        mseg   = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
-        eset   = mseg.estimate_effect(
+        dseg = df[df["CustomerSegment"]==seg]
+        mseg = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
+        eset = mseg.estimate_effect(
             mseg.identify_effect(), method_name="backdoor.linear_regression"
         )
         segs.append((seg, eset.value))
@@ -168,20 +167,18 @@ if "ate" in st.session_state:
     st.write("### Refutation Tests")
     st.caption("These are diagnostics—your ATE should hold up under each:")
 
-    if r1 is not None:
-        with st.expander("🔍 Random Common Cause"):
-            st.write(f"- Original ATE: {r1.estimated_effect:.3f}")
-            st.write(f"- ATE after refute: {r1.new_effect:.3f}")
-    else:
-        st.write("❗ Random Common Cause test skipped (EconML not installed).")
+    with st.expander("🔍 Random Common Cause"):
+        st.write(f"- Original ATE: {r1.estimated_effect:.3f}")
+        st.write(f"- ATE after refute: {r1.new_effect:.3f}")
 
     with st.expander("🔍 Placebo Treatment"):
         st.write(f"- Original ATE: {r2.estimated_effect:.3f}")
         st.write(f"- ATE after refute: {r2.new_effect:.3f}")
 
-    with st.expander("🔍 Data Subset Refuter"):
-        st.write(f"- Original ATE: {r3.estimated_effect:.3f}")
-        st.write(f"- ATE after refute: {r3.new_effect:.3f}")
+    if r3 is not None:
+        with st.expander("🔍 Data Subset Refuter"):
+            st.write(f"- Original ATE: {r3.estimated_effect:.3f}")
+            st.write(f"- ATE after refute: {r3.new_effect:.3f}")
 
     st.sidebar.subheader("4) What-If Scenario")
     mult     = st.sidebar.slider("Spend ×", 0.5, 2.0, 1.2, 0.05)

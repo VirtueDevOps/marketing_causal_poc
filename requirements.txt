@@ -1,6 +1,7 @@
+numpy<1.24
+setuptools<65
 owlready2
 pandas
-numpy
 dowhy
 matplotlib
 streamlit
