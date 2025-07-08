@@ -144,25 +144,14 @@ if "ate" in st.session_state:
     st.write("### Heterogeneous Effects by Customer Segment")
     seg_ates = []
     for seg in sorted(df["CustomerSegment"].unique()):
-        # only keep rows for this segment
         df_seg = df[df["CustomerSegment"] == seg]
-
-        # run the exact same back-door regression on the slice:
-        # Conversions ~ CampaignSpend + Seasonality + AdQuality + ChannelType
-        import statsmodels.formula.api as smf
-        df_seg_enc = pd.get_dummies(
-            df_seg,
-            columns=["Seasonality","AdQuality","ChannelType"],
-            drop_first=True,
-        )
-        formula = "Conversions ~ CampaignSpend + Seasonality_1 + AdQuality_High + ChannelType_Social + ChannelType_Display"
-        model_seg = smf.ols(formula, data=df_seg_enc).fit()
-        seg_ates.append((seg, model_seg.params["CampaignSpend"]))
-
-    # show it as a nice table
+        # pure NumPy linear slope: slope = cov(x,y)/var(x)
+        x = df_seg["CampaignSpend"].to_numpy()
+        y = df_seg["Conversions"].to_numpy()
+        slope = ((x - x.mean()) * (y - y.mean())).sum() / ((x - x.mean())**2).sum()
+        seg_ates.append((seg, slope))
     seg_df = pd.DataFrame(seg_ates, columns=["Segment","ATE"]).round(4)
     st.table(seg_df)
-
 
     # What-if
     st.sidebar.subheader("4) What-If Scenario")
