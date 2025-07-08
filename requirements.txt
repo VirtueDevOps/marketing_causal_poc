@@ -1,9 +1,8 @@
 streamlit
-pandas
 numpy
+pandas
 matplotlib
-networkx==2.8.8
-pydot==1.4.1
 owlready2
+networkx==2.8.8
 dowhy
-scikit-learn<1.2
+graphviz
