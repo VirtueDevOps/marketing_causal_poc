@@ -1,17 +1,25 @@
-# --- Stubs to skip DoWhy’s EconML-based refuter and numpy.distutils errors ---
+# --- Complete stubbing of dowhy.causal_refuters & numpy.distutils ---
 import sys, types
 
-# 1) Stub the entire dowhy.causal_refuters package
+# Stub the root refuters package
 sys.modules["dowhy.causal_refuters"] = types.ModuleType("dowhy.causal_refuters")
-# 2) Stub the specific add_unobserved_common_cause submodule
-sys.modules["dowhy.causal_refuters.add_unobserved_common_cause"] = types.ModuleType(
-    "dowhy.causal_refuters.add_unobserved_common_cause"
-)
-# 3) Stub numpy.distutils.misc_util to avoid the missing package error
+
+# Stub each sub-module that can get imported
+for sub in [
+    "add_unobserved_common_cause",
+    "random_common_cause",
+    "placebo_treatment_refuter",
+    "data_subset_refuter",
+    "graph_refuter"
+]:
+    mod_name = f"dowhy.causal_refuters.{sub}"
+    sys.modules[mod_name] = types.ModuleType(mod_name)
+
+# Stub out numpy.distutils.misc_util to avoid missing distutils
 _misc = types.ModuleType("numpy.distutils.misc_util")
 _misc.is_sequence = lambda x: isinstance(x, (list, tuple))
 sys.modules["numpy.distutils.misc_util"] = _misc
-# --- End stubs ---
+# --- End stubbing ---
 
 # --- monkey‐patch for DoWhy + NetworkX compatibility ---
 import networkx as _nx
@@ -25,7 +33,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from owlready2 import get_ontology
-from dowhy import CausalModel   # EconML & refuters are now no-ops
+from dowhy import CausalModel   # Now safe: refuters will be no-ops
 
 st.set_page_config(layout="wide")
 
