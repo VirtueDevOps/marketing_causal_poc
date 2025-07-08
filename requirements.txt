@@ -1,8 +1,9 @@
-streamlit
-numpy
-pandas
-matplotlib
 owlready2
+pandas
+numpy
+scikit-learn
+matplotlib
+streamlit
 networkx==2.8.8
-dowhy
+pydot==1.4.1
 graphviz
