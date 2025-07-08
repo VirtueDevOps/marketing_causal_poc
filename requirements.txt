@@ -1,3 +1,4 @@
+owlready2
 pandas
 numpy
 dowhy
@@ -6,4 +7,4 @@ streamlit
 networkx==2.8.8
 pydot==1.4.1
 graphviz
-owlready2
+scikit-learn>=1.0,<1.2
