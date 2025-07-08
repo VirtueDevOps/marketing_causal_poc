@@ -1,32 +1,38 @@
-# -----------------------------------------------------------------------
-# Stub out all dowhy.refuters (so no numpy.distutils or sklearn is ever needed)
-# -----------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# TOP-OF-FILE STUBS:  
+#  — avoid numpy.distutils, EconML, all refuters, AND bypass the pydot/GraphRefuter bug
+# -------------------------------------------------------------------------------
 import sys, types
 
-# 1) Stub numpy.distutils.misc_util to avoid the missing numpy.distutils error
+# 1) Stub numpy.distutils.misc_util.is_sequence
 _misc = types.SimpleNamespace(is_sequence=lambda x: False)
 sys.modules["numpy.distutils.misc_util"] = _misc
 
-# 2) Stub econml estimator so import dowhy.causal_estimators.econml never fails
+# 2) Stub the econml estimator so that dowhy.causal_estimators.econml can import
 _ec = types.ModuleType("dowhy.causal_estimators.econml")
-_ec.Econml = type("Econml", (), {})  # no-op
+_ec.Econml = type("Econml", (), {})      # no-op class
 sys.modules["dowhy.causal_estimators.econml"] = _ec
 
-# 3) Stub all the refuter modules & their key classes/functions
-_ref_base = types.ModuleType("dowhy.causal_refuters")
-sys.modules["dowhy.causal_refuters"] = _ref_base
+# 3) Stub every dowhy.causal_refuters submodule + key classes
+_refpkg = types.ModuleType("dowhy.causal_refuters")
+sys.modules["dowhy.causal_refuters"] = _refpkg
 
 for sub, clsname in [
     ("add_unobserved_common_cause", "AddUnobservedCommonCause"),
     ("graph_refuter",            "GraphRefuter"),
     ("placebo_treatment_refuter","PlaceboTreatmentRefuter"),
     ("data_subset_refuter",      "DataSubsetRefuter"),
-    ("random_common_cause",      "RandomCommonCauseRefuter")
+    ("random_common_cause_refuter","RandomCommonCauseRefuter"),
 ]:
-    mod = types.ModuleType(f"dowhy.causal_refuters.{sub}")
-    setattr(mod, clsname, type(clsname, (), {}))
-    sys.modules[f"dowhy.causal_refuters.{sub}"] = mod
+    m = types.ModuleType(f"dowhy.causal_refuters.{sub}")
+    setattr(m, clsname, type(clsname, (), {}))
+    sys.modules[f"dowhy.causal_refuters.{sub}"] = m
 
+# 4) Monkey-patch networkx’s pydot loader to avoid the get_strict(None) bug
+import networkx as _nx
+from networkx.drawing import nx_pydot
+# override their from_pydot so it never invokes pydot.Dot.get_strict
+nx_pydot.from_pydot = lambda P: _nx.DiGraph()
 
 # -----------------------------------------------------------------------
 # Now import everything else
