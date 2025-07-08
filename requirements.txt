@@ -1,9 +1,9 @@
-owllready2
 pandas
-numpy<1.24         # pin to ensure numpy.distutils is available
+numpy
 dowhy
 matplotlib
 streamlit
 networkx==2.8.8
 pydot==1.4.1
 graphviz
+owlready2

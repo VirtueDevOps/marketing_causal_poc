@@ -1,70 +1,33 @@
-# --- Full stub of dowhy.causal_refuters & numpy.distutils to avoid EconML/distutils errors ---
+# -----------------------------------------------------------------------------
+# Fully stub out numpy.distutils.misc_util and Dowhy’s econml refuter to avoid
+# any import-time errors on Streamlit Cloud.
+# -----------------------------------------------------------------------------
 import sys, types
 
-# 1) Stub the root refuters package so imports like `import dowhy.causal_refuters` work
-_ref_pkg = types.ModuleType("dowhy.causal_refuters")
-sys.modules["dowhy.causal_refuters"] = _ref_pkg
+# 1) Stub numpy.distutils.misc_util.is_sequence
+_misc_mod = types.SimpleNamespace(is_sequence=lambda x: False)
+sys.modules["numpy.distutils.misc_util"] = _misc_mod
 
-# 2) Stub each submodule DoWhy may import, and define the minimal symbols they expect
-def _make_stub(name, attrs):
-    m = types.ModuleType(name)
-    for attr, val in attrs.items():
-        setattr(m, attr, val)
-    sys.modules[name] = m
+# 2) Stub Dowhy’s econml module (so import dowhy.causal_estimators.econml works)
+_ec_mod = types.ModuleType("dowhy.causal_estimators.econml")
+_ec_mod.Econml = lambda *args, **kwargs: None
+sys.modules["dowhy.causal_estimators.econml"] = _ec_mod
 
-# a) graph_refuter needs GraphRefuter
-_make_stub(
-    "dowhy.causal_refuters.graph_refuter",
-    {"GraphRefuter": type("GraphRefuter", (), {"__init__": lambda *a, **k: None})}
-)
-
-# b) add_unobserved_common_cause expects AddUnobservedCommonCause, sensitivity_e_value, sensitivity_simulation
-_make_stub(
-    "dowhy.causal_refuters.add_unobserved_common_cause",
-    {
-        "AddUnobservedCommonCause": type("AddUnobservedCommonCause", (), {"__init__": lambda *a, **k: None}),
-        "sensitivity_e_value":     lambda *a, **k: None,
-        "sensitivity_simulation":  lambda *a, **k: None,
-    },
-)
-
-# c) random_common_cause refuter
-_make_stub(
-    "dowhy.causal_refuters.random_common_cause",
-    {"RandomCommonCause": type("RandomCommonCause", (), {"__init__": lambda *a, **k: None})}
-)
-
-# d) placebo_treatment_refuter
-_make_stub(
-    "dowhy.causal_refuters.placebo_treatment_refuter",
-    {"PlaceboTreatmentRefuter": type("PlaceboTreatmentRefuter", (), {"__init__": lambda *a, **k: None})}
-)
-
-# e) data_subset_refuter
-_make_stub(
-    "dowhy.causal_refuters.data_subset_refuter",
-    {"DataSubsetRefuter": type("DataSubsetRefuter", (), {"__init__": lambda *a, **k: None})}
-)
-
-# 3) Stub out numpy.distutils.misc_util so EconML import won’t crash
-_misc = types.ModuleType("numpy.distutils.misc_util")
-_misc.is_sequence = lambda x: isinstance(x, (list, tuple))
-sys.modules["numpy.distutils.misc_util"] = _misc
-# --- End stubs ---
-
-# --- monkey‐patch for DoWhy + NetworkX compatibility ---
-import networkx as _nx
-from networkx.algorithms.d_separation import d_separated as _dsep
-_nx.algorithms.d_separated = _dsep
-# --- end patch ---
-
+# -----------------------------------------------------------------------------
+# Now import everything else normally
+# -----------------------------------------------------------------------------
 import os, io, zipfile
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
+import networkx as _nx
 from owlready2 import get_ontology
-from dowhy import CausalModel   # Now safe: refuters will be no-ops
+from dowhy import CausalModel
+from networkx.algorithms.d_separation import d_separated as _dsep
+
+# Monkey-patch NetworkX for DoWhy compatibility
+_nx.algorithms.d_separated = _dsep
 
 st.set_page_config(layout="wide")
 
@@ -130,7 +93,7 @@ st.write("### Data sample", df.head())
 # 2) Ontology
 st.sidebar.subheader("2) Ontology")
 ont_mode = st.sidebar.radio("Source", ["Built-In", "Upload"])
-if ont_mode == "Built-In":
+if ont_mode=="Built-In":
     onto = get_ontology("ontology/marketing_ontology.owl").load()
 else:
     uploaded_owl = st.sidebar.file_uploader("OWL file", ["owl"])
@@ -167,8 +130,7 @@ if st.sidebar.button("▶️ Run Causal Model"):
     )
 
     # three refutation tests
-    ref1 = model.refute_estimate(estimand, estimate,
-                                 method_name="random_common_cause")
+    ref1 = model.refute_estimate(estimand, estimate, method_name="random_common_cause")
     ref2 = model.refute_estimate(estimand, estimate,
                                  method_name="placebo_treatment_refuter",
                                  placebo_type="permute")
@@ -205,13 +167,13 @@ if "ate" in st.session_state:
     st.write("### Heterogeneous Effects by Customer Segment")
     segs = []
     for seg in sorted(df["CustomerSegment"].unique()):
-        dseg   = df[df["CustomerSegment"]==seg]
-        mseg   = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
-        eset   = mseg.estimate_effect(
+        dseg = df[df["CustomerSegment"]==seg]
+        mseg = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
+        eset = mseg.estimate_effect(
             mseg.identify_effect(), method_name="backdoor.linear_regression"
         )
         segs.append((seg, eset.value))
-    st.table(pd.DataFrame(segs,columns=["Segment","ATE"]).round(4))
+    st.table(pd.DataFrame(segs, columns=["Segment","ATE"]).round(4))
 
     st.write("### Refutation Tests")
     st.caption("These are diagnostics—your ATE should hold up under each:")
@@ -234,11 +196,9 @@ if "ate" in st.session_state:
     st.write(f"**Predicted avg conversions @×{mult:.2f}:** {new_mean:.2f}")
 
     fig, ax = plt.subplots()
-    ax.scatter(df["CampaignSpend"], df["Conversions"],
-               alpha=0.4, label="Observed")
+    ax.scatter(df["CampaignSpend"], df["Conversions"], alpha=0.4, label="Observed")
     ax.axhline(base, linestyle="--", color="gray", label="Obs Avg")
-    ax.scatter(df["CampaignSpend"]*mult,
-               [new_mean]*len(df),
+    ax.scatter(df["CampaignSpend"]*mult, [new_mean]*len(df),
                alpha=0.4, label="Counterfactual")
     ax.set_xlabel("Campaign Spend (USD)")
     ax.set_ylabel("Conversions")
