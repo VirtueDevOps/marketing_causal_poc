@@ -1,3 +1,15 @@
+# --- Stub out numpy.distutils.misc_util so DoWhy’s econml importer won't fail ---
+import sys
+import types
+
+# Create a fake module at numpy.distutils.misc_util
+_misc_mod = types.ModuleType("numpy.distutils.misc_util")
+# Provide the minimal function DoWhy expects
+_misc_mod.is_sequence = lambda x: isinstance(x, (list, tuple))
+# Inject into sys.modules before any CausalModel import
+sys.modules["numpy.distutils.misc_util"] = _misc_mod
+# --- End stub ---
+
 # --- monkey‐patch for DoWhy + NetworkX compatibility ---
 import networkx as _nx
 from networkx.algorithms.d_separation import d_separated as _dsep
@@ -112,20 +124,15 @@ if st.sidebar.button("▶️ Run Causal Model"):
         estimand, method_name="backdoor.linear_regression"
     )
 
-    # always run these two
+    # three refutation tests
     ref1 = model.refute_estimate(estimand, estimate,
                                  method_name="random_common_cause")
     ref2 = model.refute_estimate(estimand, estimate,
                                  method_name="placebo_treatment_refuter",
                                  placebo_type="permute")
-
-    # try the EconML‐based refuter, but skip if it fails
-    try:
-        ref3 = model.refute_estimate(estimand, estimate,
-                                     method_name="data_subset_refuter",
-                                     subset_fraction=0.7)
-    except Exception:
-        ref3 = None
+    ref3 = model.refute_estimate(estimand, estimate,
+                                 method_name="data_subset_refuter",
+                                 subset_fraction=0.7)
 
     st.session_state.update({
         "ate":    estimate.value,
@@ -156,9 +163,9 @@ if "ate" in st.session_state:
     st.write("### Heterogeneous Effects by Customer Segment")
     segs = []
     for seg in sorted(df["CustomerSegment"].unique()):
-        dseg = df[df["CustomerSegment"]==seg]
-        mseg = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
-        eset = mseg.estimate_effect(
+        dseg   = df[df["CustomerSegment"]==seg]
+        mseg   = CausalModel(dseg, "CampaignSpend", "Conversions", graph)
+        eset   = mseg.estimate_effect(
             mseg.identify_effect(), method_name="backdoor.linear_regression"
         )
         segs.append((seg, eset.value))
@@ -175,10 +182,9 @@ if "ate" in st.session_state:
         st.write(f"- Original ATE: {r2.estimated_effect:.3f}")
         st.write(f"- ATE after refute: {r2.new_effect:.3f}")
 
-    if r3 is not None:
-        with st.expander("🔍 Data Subset Refuter"):
-            st.write(f"- Original ATE: {r3.estimated_effect:.3f}")
-            st.write(f"- ATE after refute: {r3.new_effect:.3f}")
+    with st.expander("🔍 Data Subset Refuter"):
+        st.write(f"- Original ATE: {r3.estimated_effect:.3f}")
+        st.write(f"- ATE after refute: {r3.new_effect:.3f}")
 
     st.sidebar.subheader("4) What-If Scenario")
     mult     = st.sidebar.slider("Spend ×", 0.5, 2.0, 1.2, 0.05)
