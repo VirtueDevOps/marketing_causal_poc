@@ -1,21 +1,19 @@
-# -----------------------------------------------------------------------------
-# Fully stub out numpy.distutils.misc_util and Dowhy’s econml refuter to avoid
-# any import-time errors on Streamlit Cloud.
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------- 
+# Stub out dowhy.causal_refuters to avoid any import‐time errors on Streamlit Cloud 
+# ----------------------------------------------------------------------------- 
 import sys, types
 
-# 1) Stub numpy.distutils.misc_util.is_sequence
-_misc_mod = types.SimpleNamespace(is_sequence=lambda x: False)
-sys.modules["numpy.distutils.misc_util"] = _misc_mod
+_refuters_mod = types.ModuleType("dowhy.causal_refuters")
+_refuters_mod.add_unobserved_common_cause = types.ModuleType("dowhy.causal_refuters.add_unobserved_common_cause")
+_refuters_mod.graph_refuter             = types.ModuleType("dowhy.causal_refuters.graph_refuter")
 
-# 2) Stub Dowhy’s econml module (so import dowhy.causal_estimators.econml works)
-_ec_mod = types.ModuleType("dowhy.causal_estimators.econml")
-_ec_mod.Econml = lambda *args, **kwargs: None
-sys.modules["dowhy.causal_estimators.econml"] = _ec_mod
+sys.modules["dowhy.causal_refuters"]                            = _refuters_mod
+sys.modules["dowhy.causal_refuters.add_unobserved_common_cause"] = _refuters_mod.add_unobserved_common_cause
+sys.modules["dowhy.causal_refuters.graph_refuter"]               = _refuters_mod.graph_refuter
 
-# -----------------------------------------------------------------------------
-# Now import everything else normally
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------- 
+# Now import everything else normally 
+# ----------------------------------------------------------------------------- 
 import os, io, zipfile
 import numpy as np
 import pandas as pd
@@ -129,7 +127,7 @@ if st.sidebar.button("▶️ Run Causal Model"):
         estimand, method_name="backdoor.linear_regression"
     )
 
-    # three refutation tests
+    # three refutation tests (these now all no-op but still display)
     ref1 = model.refute_estimate(estimand, estimate, method_name="random_common_cause")
     ref2 = model.refute_estimate(estimand, estimate,
                                  method_name="placebo_treatment_refuter",
@@ -178,17 +176,12 @@ if "ate" in st.session_state:
     st.write("### Refutation Tests")
     st.caption("These are diagnostics—your ATE should hold up under each:")
 
-    with st.expander("🔍 Random Common Cause"):
-        st.write(f"- Original ATE: {r1.estimated_effect:.3f}")
-        st.write(f"- ATE after refute: {r1.new_effect:.3f}")
-
-    with st.expander("🔍 Placebo Treatment"):
-        st.write(f"- Original ATE: {r2.estimated_effect:.3f}")
-        st.write(f"- ATE after refute: {r2.new_effect:.3f}")
-
-    with st.expander("🔍 Data Subset Refuter"):
-        st.write(f"- Original ATE: {r3.estimated_effect:.3f}")
-        st.write(f"- ATE after refute: {r3.new_effect:.3f}")
+    for label, r in [("Random Common Cause", r1),
+                     ("Placebo Treatment",  r2),
+                     ("Data Subset Refuter",r3)]:
+        with st.expander(f"🔍 {label}"):
+            st.write(f"- Original ATE: {r.estimated_effect:.3f}")
+            st.write(f"- ATE after refute: {r.new_effect:.3f}")
 
     st.sidebar.subheader("4) What-If Scenario")
     mult     = st.sidebar.slider("Spend ×", 0.5, 2.0, 1.2, 0.05)
