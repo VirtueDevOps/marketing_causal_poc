@@ -1,25 +1,56 @@
-# --- Complete stubbing of dowhy.causal_refuters & numpy.distutils ---
+# --- Full stub of dowhy.causal_refuters & numpy.distutils to avoid EconML/distutils errors ---
 import sys, types
 
-# Stub the root refuters package
-sys.modules["dowhy.causal_refuters"] = types.ModuleType("dowhy.causal_refuters")
+# 1) Stub the root refuters package so imports like `import dowhy.causal_refuters` work
+_ref_pkg = types.ModuleType("dowhy.causal_refuters")
+sys.modules["dowhy.causal_refuters"] = _ref_pkg
 
-# Stub each sub-module that can get imported
-for sub in [
-    "add_unobserved_common_cause",
-    "random_common_cause",
-    "placebo_treatment_refuter",
-    "data_subset_refuter",
-    "graph_refuter"
-]:
-    mod_name = f"dowhy.causal_refuters.{sub}"
-    sys.modules[mod_name] = types.ModuleType(mod_name)
+# 2) Stub each submodule DoWhy may import, and define the minimal symbols they expect
+def _make_stub(name, attrs):
+    m = types.ModuleType(name)
+    for attr, val in attrs.items():
+        setattr(m, attr, val)
+    sys.modules[name] = m
 
-# Stub out numpy.distutils.misc_util to avoid missing distutils
+# a) graph_refuter needs GraphRefuter
+_make_stub(
+    "dowhy.causal_refuters.graph_refuter",
+    {"GraphRefuter": type("GraphRefuter", (), {"__init__": lambda *a, **k: None})}
+)
+
+# b) add_unobserved_common_cause expects AddUnobservedCommonCause, sensitivity_e_value, sensitivity_simulation
+_make_stub(
+    "dowhy.causal_refuters.add_unobserved_common_cause",
+    {
+        "AddUnobservedCommonCause": type("AddUnobservedCommonCause", (), {"__init__": lambda *a, **k: None}),
+        "sensitivity_e_value":     lambda *a, **k: None,
+        "sensitivity_simulation":  lambda *a, **k: None,
+    },
+)
+
+# c) random_common_cause refuter
+_make_stub(
+    "dowhy.causal_refuters.random_common_cause",
+    {"RandomCommonCause": type("RandomCommonCause", (), {"__init__": lambda *a, **k: None})}
+)
+
+# d) placebo_treatment_refuter
+_make_stub(
+    "dowhy.causal_refuters.placebo_treatment_refuter",
+    {"PlaceboTreatmentRefuter": type("PlaceboTreatmentRefuter", (), {"__init__": lambda *a, **k: None})}
+)
+
+# e) data_subset_refuter
+_make_stub(
+    "dowhy.causal_refuters.data_subset_refuter",
+    {"DataSubsetRefuter": type("DataSubsetRefuter", (), {"__init__": lambda *a, **k: None})}
+)
+
+# 3) Stub out numpy.distutils.misc_util so EconML import won’t crash
 _misc = types.ModuleType("numpy.distutils.misc_util")
 _misc.is_sequence = lambda x: isinstance(x, (list, tuple))
 sys.modules["numpy.distutils.misc_util"] = _misc
-# --- End stubbing ---
+# --- End stubs ---
 
 # --- monkey‐patch for DoWhy + NetworkX compatibility ---
 import networkx as _nx
