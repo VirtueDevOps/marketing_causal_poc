@@ -142,21 +142,27 @@ if "ate" in st.session_state:
     st.write(f"**Overall ATE:** {ate:.4f} conversions per $1 spend")
 
     st.write("### Heterogeneous Effects by Customer Segment")
-    segs = []
+    seg_ates = []
     for seg in sorted(df["CustomerSegment"].unique()):
-        mask = df["CustomerSegment"]==seg
-        reg_seg = LinearRegression().fit(
-            X[mask].loc[:, "CampaignSpend":"Segment_B"],
-            y[mask]
-        )
-        segs.append((seg, reg_seg.coef_[0]))
-    st.table(pd.DataFrame(segs, columns=["Segment","ATE"]).round(4))
+        # only keep rows for this segment
+        df_seg = df[df["CustomerSegment"] == seg]
 
-    st.write("### (Static) Refutation Checks")
-    st.caption("We’d normally run DoWhy refuters here — in this fallback we just show static diagnostics:")
-    st.write("- Random common cause:  ATE stays at **{:.3f}**".format(ate))
-    st.write("- Placebo treatment:      ATE → **0.000**")
-    st.write("- Data subset refit:      ATE stays at **{:.3f}**".format(ate))
+        # run the exact same back-door regression on the slice:
+        # Conversions ~ CampaignSpend + Seasonality + AdQuality + ChannelType
+        import statsmodels.formula.api as smf
+        df_seg_enc = pd.get_dummies(
+            df_seg,
+            columns=["Seasonality","AdQuality","ChannelType"],
+            drop_first=True,
+        )
+        formula = "Conversions ~ CampaignSpend + Seasonality_1 + AdQuality_High + ChannelType_Social + ChannelType_Display"
+        model_seg = smf.ols(formula, data=df_seg_enc).fit()
+        seg_ates.append((seg, model_seg.params["CampaignSpend"]))
+
+    # show it as a nice table
+    seg_df = pd.DataFrame(seg_ates, columns=["Segment","ATE"]).round(4)
+    st.table(seg_df)
+
 
     # What-if
     st.sidebar.subheader("4) What-If Scenario")
