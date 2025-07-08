@@ -1,6 +1,6 @@
 owlready2
 pandas
-numpy
+numpy==1.24.4
 dowhy
 matplotlib
 streamlit
