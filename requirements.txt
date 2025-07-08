@@ -1,11 +1,9 @@
 owlready2
 pandas
-numpy<1.24          # use last 1.23.x series so numpy.distutils still exists
+numpy
 dowhy
-econml              # so Dowhy actually finds it, even if we skip the test
 matplotlib
 streamlit
 networkx==2.8.8
 pydot==1.4.1
 graphviz
-setuptools<65.0     # avoid the new pkgutil change in setuptools 65+
