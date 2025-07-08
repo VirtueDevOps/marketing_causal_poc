@@ -1,7 +1,6 @@
-owlready2
+owllready2
 pandas
-numpy<1.25
-scikit-learn<1.2
+numpy<1.24         # pin to ensure numpy.distutils is available
 dowhy
 matplotlib
 streamlit
