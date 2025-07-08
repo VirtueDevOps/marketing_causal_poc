@@ -22,7 +22,7 @@ if st.sidebar.checkbox("📖 Show Tutorial"):
         st.markdown(f.read())
     st.stop()
 
-st.title("📈 Ontology + Causal AI Demo (DoWhy → sklearn fallback)")
+st.title("📈 Ontology + Causal AI Demo")
 
 # — Sidebar Controls —
 st.sidebar.header("Controls")
